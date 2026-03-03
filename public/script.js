@@ -12,14 +12,37 @@ function tampilTodo(todo, id) {
   item.innerText = todo;
   item.dataset.id = id;
 
-  const btn = document.createElement("button");
-  btn.innerText = "Hapus";
-  btn.addEventListener("click", () => {
-    fetch(URL + "/todos/" + id, { method: "DELETE" })
-      .then(() => item.remove());
+  const editBtn = document.createElement("button");
+  editBtn.innerText = "Edit";
+  editBtn.addEventListener("click", () => {
+    const newTodo = prompt("Edit todo", todo);
+    if (newTodo) {
+      fetch(URL + "/todos/" + id, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token
+                 },
+        body: JSON.stringify({ todo: newTodo })
+      })
+      .then(res => res.json())
+      .then (() => {
+        item.firstChild.textContent = newTodo;
+      });      
+      }
+    });     
+const btnHapus = document.createElement("button");
+  btnHapus.innerText = "Hapus";
+  btnHapus.addEventListener("click", () => {
+    fetch(URL + "/todos/" + id, { 
+      method: "DELETE",
+      headers: { "Authorization": token }
+    })
+    .then(() => item.remove());
   });
 
-  item.appendChild(btn);
+  item.appendChild(editBtn);
+  item.appendChild(btnHapus);
   list.appendChild(item);
 }
 
@@ -39,7 +62,10 @@ tombol.addEventListener("click", () => {
   } else {
     fetch(URL + "/todos", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": token
+      },
       body: JSON.stringify({ todo: input.value })
     })
     .then(res => res.json())

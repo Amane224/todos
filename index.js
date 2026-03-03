@@ -34,20 +34,29 @@ db.exec(`
     password TEXT NOT NULL
   )
 `)
+try{
+  db.exec('ALTER TABLE todos ADD COLUMN user_id INTEGER');
+} catch (e) {
+  console.log("Kolom user_id sudah ada");
+}
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
-app.post("/todos", (req, res) => {
+app.post("/todos", authMiddleware, (req, res) => {
   const todo = req.body.todo;
-  const result = db.prepare("INSERT INTO todos (todo) VALUES (?)").run(todo);
-  res.json({ message: "Todo ditambahkan", id: result.lastInsertRowid });
+  const user_id = req.user.id;
+  const stmt = db.prepare("INSERT INTO todos (todo, user_id) VALUES (?, ?)").run(todo, user_id);
+  res.json({message: "Todo ditambahkan", id: stmt.lastInsertRowid});
 });
 
 app.get("/todos", authMiddleware, (req, res) => {
-  const todos = db.prepare("SELECT * FROM todos").all();
+  console.log("user id:", req.user.id);
+  console.log("user data:", req.user);
+  const user_id = req.user.id;
+  const todos = db.prepare("SELECT * FROM todos WHERE user_id = ?").all(user_id);
   res.json(todos);
 });
 
@@ -97,6 +106,12 @@ app.post('/login', async (req, res) => {
   res.json({ message: "Login berhasil", token });
 })
 
+app.put('/todos/:id', (req, res) => {
+  const id = req.params.id;
+  const todo = req.body.todo;
+  db.prepare("UPDATE todos SET todo = ? WHERE id = ?").run(todo, id);
+  res.json({ message: "Todo diupdate" });
+});
 app.listen(3000, () => {
    console.log("Server berjalan di port 3000");
 });
